@@ -23,7 +23,8 @@ if (conf) {
   }
   if (conf.get('enterprise:enable')) {
     const gitHubHost = conf.get('enterprise:host')
-    gitHubHostApi = `${gitHubHost}/api/v3`
+    // gitHubHostApi = `${gitHubHost}/api/v3`
+    gitHubHostApi = `${gitHubHost}`
   }
 }
 

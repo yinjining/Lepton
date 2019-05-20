@@ -7,6 +7,7 @@ import ReactDom from 'react-dom'
 import { Provider } from 'react-redux'
 import { createStore, applyMiddleware } from 'redux'
 import thunk from 'redux-thunk'
+import reduxlogger from 'redux-logger'
 import electronLocalStorage from 'electron-json-storage-sync'
 
 import './utilities/vendor/bootstrap/css/bootstrap.css'
@@ -278,6 +279,8 @@ function updateUserGists (userLoginId, token) {
       gistList.forEach((gist) => {
         let langs = new Set()
         let filenameRecords = ''
+
+        console.log(`gist ${gist.id}=${gist}`)
 
         Object.keys(gist.files).forEach(filename => {
           // leave a space in between to help tokenization
@@ -686,11 +689,10 @@ ipcRenderer.on('update-available', payload => {
   reduxStore.dispatch(updateUpdateAvailableBarStatus('ON'))
 })
 /** End: Response to  main process events **/
-
 // Start
 const reduxStore = createStore(
   RootReducer,
-  applyMiddleware(thunk)
+  applyMiddleware(thunk, reduxlogger),
 )
 
 ReactDom.render(
