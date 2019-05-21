@@ -102,7 +102,9 @@ class LoginPage extends Component {
       var footer = <a href="https://github.com/hackjutsu/Lepton">{welcomeMessage}</a>
 
       if (conf.get('gitlab:enable')) {
-        footer = <a href={`http://${conf.get('gitlab:host')`}/}>'Lepton is FREE. Like us in Gitlab!'</a>
+        footer = (
+          <a href={ 'http://' + conf.get('gitlab:host') }>'Lepton is FREE. Like us in Gitlab!'</a>
+        )
       }
 
       return (
