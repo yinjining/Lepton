@@ -262,12 +262,12 @@ function clearSyncSnapshot () {
 
 function reSyncUserGists () {
   let { userSession, accessToken } = reduxStore.getState()
-  updateUserGists(userSession.profile.login, accessToken)
+  updateUserGists(userSession.profile.login, accessToken, userSession.profile.projectId)
 }
 
-function updateUserGists (userLoginId, token) {
+function updateUserGists (userLoginId, token, projectId) {
   reduxStore.dispatch(updateGistSyncStatus('IN_PROGRESS'))
-  return getGitHubApi(GET_ALL_GISTS)(token, userLoginId)
+  return getGitHubApi(GET_ALL_GISTS)(token, userLoginId, projectId)
     .then((gistList) => {
       let preGists = reduxStore.getState().gists
       let gists = {}
@@ -383,7 +383,7 @@ function initUserSession (token) {
     .then((profile) => {
       logger.debug('-----> from GET_USER_PROFILE with profile ' + JSON.stringify(profile))
       newProfile = profile
-      return updateUserGists(profile.login, token)
+      return updateUserGists(profile.login, token, profile.projectId)
     })
     .then(() => {
       logger.debug('-----> before updateLocalStorage')
@@ -398,14 +398,14 @@ function initUserSession (token) {
       syncLocalPref(newProfile.login)
       logger.debug('-----> after syncLocalPref')
 
-      remote.getCurrentWindow().setTitle(`${newProfile.login} | ${conf.get('gitlab:enable') ? `Gitlab-${conf.get('gitlab:groupAndName')}` : 'GitHub'} Lepton`) // update the app title
+      remote.getCurrentWindow().setTitle(`${newProfile.login} | ${conf.get('gitlab:enable') ? ('Gitlab' + conf.get('gitlab:name')) : 'GitHub'} Lepton`) // update the app title
 
       logger.info('[Dispatch] updateUserSession ACTIVE')
       reduxStore.dispatch(updateUserSession({ activeStatus: 'ACTIVE', profile: newProfile }))
     })
     .catch((err) => {
-      logger.debug('-----> Failure with ' + JSON.stringify(err))
-      logger.error('The request has failed: \n' + JSON.stringify(err))
+      logger.debug('-----> Failure with ' + err)
+      logger.error('The request has failed: \n' + err)
 
       if (err.statusCode === 401) {
         logger.info('[Dispatch] updateUserSession EXPIRED')

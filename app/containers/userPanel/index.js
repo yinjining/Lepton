@@ -76,6 +76,7 @@ class UserPanel extends Component {
     const isPublic = data.private === undefined ? true : !data.private
     const description = data.description.trim()
     const processedFiles = {}
+    const { userSession } = this.props
 
     data.gistFiles.forEach((file) => {
       processedFiles[file.filename.trim()] = {
@@ -83,7 +84,7 @@ class UserPanel extends Component {
       }
     })
 
-    return getGitHubApi(CREATE_SINGLE_GIST)(this.props.accessToken, description, processedFiles, isPublic)
+    return getGitHubApi(CREATE_SINGLE_GIST)(this.props.accessToken, description, processedFiles, isPublic, userSession.profile.projectId)
       .catch((err) => {
         Notifier('Gist creation failed')
         logger.error(JSON.stringify(err))

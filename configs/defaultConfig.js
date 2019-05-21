@@ -30,6 +30,7 @@ module.exports = {
         "host": "",
         "token": "",
         "avatarUrl": "",
-        "groupAndName": ""
+        "group":"",
+        "name":""
     }
 }

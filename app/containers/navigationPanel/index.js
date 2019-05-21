@@ -164,7 +164,7 @@ class NavigationPanel extends Component {
       starred = (
         <div className='starred-tag-section'>
           <div className='tag-section-content'>
-            <a className='gist-tag' href={ `http://${conf.get('gitlab:host')}/${conf.get('gitlab:groupAndName')}/snippets` }>#Snippets</a>
+            <a className='gist-tag' href={ `http://${conf.get('gitlab:host')}/${conf.get('gitlab:group')}/${conf.get('gitlab:name')}/snippets` }>#Snippets</a>
           </div>
         </div>
       )

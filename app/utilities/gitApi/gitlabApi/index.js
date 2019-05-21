@@ -2,10 +2,10 @@
 
 import { Promise } from 'bluebird'
 import { remote } from 'electron'
-import Notifier from '../../notifier'
+// import Notifier from '../../notifier'
 // import ProxyAgent from 'proxy-agent'
 import ReqPromise from 'request-promise'
-import Request from 'request'
+// import Request from 'request'
 import md5 from 'md5'
 
 const TAG = '[Gitlab REST] '
@@ -14,42 +14,25 @@ const logger = remote.getGlobal('logger')
 const conf = remote.getGlobal('conf')
 const userAgent = 'hackjutsu-lepton-app'
 let hostApi = ''
+let group = ''
+let name = ''
 
 let proxyAgent = null
 if (conf) {
-  // 暂时不支持proxy
-  // if (conf.get('proxy:enable')) {
-  //   const proxyUri = conf.get('proxy:address')
-  //   proxyAgent = new ProxyAgent(proxyUri)
-  //   logger.info('[.leptonrc] Use proxy', proxyUri)
-  // }
   if (conf.get('gitlab:enable')) {
     const gitlabHost = conf.get('gitlab:host')
     hostApi = `${gitlabHost}/api/v4`
+    group = conf.get('gitlab:group')
+    name = conf.get('gitlab:name')
   }
 }
 
-// function exchangeAccessToken (clientId, clientSecret, authCode) {
-//   logger.debug(TAG + 'Exchanging authCode with access token')
-//   return ReqPromise({
-//     method: 'POST',
-//     uri: 'https://github.com/login/oauth/access_token',
-//     agent: proxyAgent,
-//     form: {
-//       'client_id': clientId,
-//       'client_secret': clientSecret,
-//       'code': authCode,
-//     },
-//     json: true,
-//     timeout: 2 * kTimeoutUnit
-//   })
-// }
-
 function getUserProfile (token) {
   logger.debug(TAG + 'Getting user profile with token ' + token)
-  const USER_PROFILE_URI = `http://${hostApi}/user`
+
+  const result = {}
   return ReqPromise({
-    uri: USER_PROFILE_URI,
+    uri: `http://${hostApi}/user`,
     agent: proxyAgent,
     headers: {
       'User-Agent': userAgent,
@@ -61,8 +44,55 @@ function getUserProfile (token) {
     json: true, // Automatically parses the JSON string in the response
     timeout: 2 * kTimeoutUnit
   }).then((profile) => {
-    logger.debug('-----> from gitlab api to github api ' + JSON.stringify(profile))
-    return { login: profile.username, id: profile.id }
+    result.login = profile.username
+    return getProjectId(token, group, name)
+  }).then((projectId) => {
+    result.projectId = projectId
+    return result
+  })
+}
+
+function getProjectId (token, group, name) {
+  logger.debug(TAG + 'Getting project id with token ' + group + '；' + name)
+
+  return ReqPromise({
+    uri: `http://${hostApi}/projects`,
+    agent: proxyAgent,
+    headers: {
+      'User-Agent': userAgent
+    },
+    method: 'GET',
+    qs: {
+      private_token: token,
+      search: name
+    },
+    json: true, // Automatically parses the JSON string in the response
+    timeout: 2 * kTimeoutUnit
+  }).then(res => {
+    console.log('get project id', res)
+
+    return new Promise((resolve, reject) => {
+      if (group === '' || name === '') {
+        reject(new Error('group or name is null'))
+        return
+      }
+
+      const pathWithNamespace = group + '/' + name
+      let projectId = ''
+      for (let i = 0; i < res.length; i++) {
+        let project = res[i]
+        if (project['path_with_namespace'] === pathWithNamespace) {
+          projectId = project.id
+          break
+        }
+      }
+
+      if (projectId === '') {
+        reject(new Error('don\'t get projectId'))
+      } else {
+        resolve(projectId)
+      }
+    })
   })
 }
 
@@ -71,7 +101,7 @@ function getSingleGist (token, gistId, oldGist) {
 
   const requests = []
   for (let filename in oldGist.brief.files) {
-    requests.push(requestSnippetContent(oldGist.brief.files[filename], token))
+    requests.push(requestSnippetContent(oldGist.brief.files[filename], token, oldGist.brief.project_id))
   }
   console.log('getSingleGist', requests, oldGist)
 
@@ -81,9 +111,9 @@ function getSingleGist (token, gistId, oldGist) {
     })
 }
 
-function requestSnippetContent (snippet, token) {
+function requestSnippetContent (snippet, token, projectId) {
   logger.debug(TAG + `Requesting snippet content ${snippet.id} with token ${token}`)
-  const SINGLE_GIST_URI = `http://${hostApi}/projects/29334/snippets/${snippet.id}/raw`
+  const SINGLE_GIST_URI = `http://${hostApi}/projects/${projectId}/snippets/${snippet.id}/raw`
   return ReqPromise({
     uri: SINGLE_GIST_URI,
     agent: proxyAgent,
@@ -108,10 +138,10 @@ function requestSnippetContent (snippet, token) {
  * @param userId
  * @returns {*|*|*|*|Promise<T | never>}
  */
-function getAllGistsV2 (token, userId) {
-  logger.debug(TAG + `Getting all gists of ${userId} with token ${token}`)
+function getAllGistsV2 (token, userId, projectId) {
+  logger.debug(TAG + `Getting all gists of ${projectId} with token ${token}`)
   const snippetsList = []
-  return requestGists(token, userId, 1, snippetsList)
+  return requestGists(token, 1, snippetsList, projectId)
     .then(res => {
       // console.log('The res is', res)
       // const matches = res.headers['link'].match(/page=[0-9]*/g)
@@ -120,7 +150,7 @@ function getAllGistsV2 (token, userId) {
       logger.debug(TAG + `The max page number for gist is ${maxPage}`)
 
       const requests = []
-      for (let i = 2; i <= maxPage; ++i) { requests.push(requestGists(token, userId, i, snippetsList)) }
+      for (let i = 2; i <= maxPage; ++i) { requests.push(requestGists(token, i, snippetsList, projectId)) }
       return Promise.all(requests)
         .then(() => {
           return snippetsList.sort((g1, g2) => g2.title.localeCompare(g1.title))
@@ -151,21 +181,22 @@ function getAllGistsV2 (token, userId) {
         gist['created_at'] = snippet['created_at']
         gist['html_url'] = snippet['web_url']
         gist['user'] = snippet['author']['username']
+        gist['project_id'] = snippet['project_id']
       }
 
       console.log('gistList=', gistList)
       // 做归类处理
       return gistList
     })
-    .catch(err => {
+    .catch((err) => {
       logger.debug(TAG + `[V2] Something wrong happens ${err}. Falling back to [V1]...`)
-      return getAllGistsV1(token, userId)
+      // return getAllGistsV1(token, userId)
     })
 }
 
-function requestGists (token, userId, page, gistList) {
+function requestGists (token, page, gistList, projectId) {
   logger.debug(TAG + 'Requesting gists with page ' + page)
-  return ReqPromise(makeOptionForGetAllGists(token, userId, page))
+  return ReqPromise(makeOptionForGetAllGists(token, page, projectId))
     .catch(err => {
       logger.error(err)
     })
@@ -179,65 +210,65 @@ function parseBody (res, gistList) {
   for (let key in res) { if (res.hasOwnProperty(key)) gistList.push(res[key]) }
 }
 
-const EMPTY_PAGE_ERROR_MESSAGE = 'page empty (Not an error)'
-function getAllGistsV1 (token, userId) {
-  logger.debug(TAG + `[V1] Getting all gists of ${userId} with token ${token}`)
-  let gistList = []
-  return new Promise((resolve, reject) => {
-    const maxPageNumber = 100
-    let funcs = Promise.resolve(
-      makeRangeArr(1, maxPageNumber).map(
-        (n) => makeRequestForGetAllGists(makeOptionForGetAllGists(token, userId, n))))
-
-    funcs.mapSeries(iterator)
-      .catch(err => {
-        if (err !== EMPTY_PAGE_ERROR_MESSAGE) {
-          logger.error(err)
-          Notifier('Sync failed', 'Please check your network condition. 05')
-        }
-      })
-      .finally(() => {
-        resolve(gistList)
-      })
-  })
-
-  function iterator (f) {
-    return f()
-  }
-
-  function makeRequestForGetAllGists (option) {
-    return () => {
-      return new Promise((resolve, reject) => {
-        Request(option, (error, response, body) => {
-          logger.debug('The gist number on this page is ' + body.length)
-          if (error) {
-            reject(error)
-          } else if (body.length === 0) {
-            reject(EMPTY_PAGE_ERROR_MESSAGE)
-          } else {
-            for (let key in body) {
-              if (body.hasOwnProperty(key)) {
-                gistList.push(body[key])
-              }
-            }
-            resolve(body)
-          }
-        })
-      })
-    }
-  }
-}
-
-function makeRangeArr (start, end) {
-  let result = []
-  for (let i = start; i <= end; i++) result.push(i)
-  return result
-}
+// const EMPTY_PAGE_ERROR_MESSAGE = 'page empty (Not an error)'
+// function getAllGistsV1 (token, userId) {
+//   logger.debug(TAG + `[V1] Getting all gists of ${userId} with token ${token}`)
+//   let gistList = []
+//   return new Promise((resolve, reject) => {
+//     const maxPageNumber = 100
+//     let funcs = Promise.resolve(
+//       makeRangeArr(1, maxPageNumber).map(
+//         (n) => makeRequestForGetAllGists(makeOptionForGetAllGists(token, userId, n))))
+//
+//     funcs.mapSeries(iterator)
+//       .catch(err => {
+//         if (err !== EMPTY_PAGE_ERROR_MESSAGE) {
+//           logger.error(err)
+//           Notifier('Sync failed', 'Please check your network condition. 05')
+//         }
+//       })
+//       .finally(() => {
+//         resolve(gistList)
+//       })
+//   })
+//
+//   function iterator (f) {
+//     return f()
+//   }
+//
+//   function makeRequestForGetAllGists (option) {
+//     return () => {
+//       return new Promise((resolve, reject) => {
+//         Request(option, (error, response, body) => {
+//           logger.debug('The gist number on this page is ' + body.length)
+//           if (error) {
+//             reject(error)
+//           } else if (body.length === 0) {
+//             reject(EMPTY_PAGE_ERROR_MESSAGE)
+//           } else {
+//             for (let key in body) {
+//               if (body.hasOwnProperty(key)) {
+//                 gistList.push(body[key])
+//               }
+//             }
+//             resolve(body)
+//           }
+//         })
+//       })
+//     }
+//   }
+// }
+//
+// function makeRangeArr (start, end) {
+//   let result = []
+//   for (let i = start; i <= end; i++) result.push(i)
+//   return result
+// }
 
 const GISTS_PER_PAGE = 100
-function makeOptionForGetAllGists (token, userId, page) {
+function makeOptionForGetAllGists (token, page, projectId) {
   return {
-    uri: `http://${hostApi}/projects/29334/snippets`,
+    uri: `http://${hostApi}/projects/${projectId}/snippets`,
     agent: proxyAgent,
     headers: {
       'User-Agent': userAgent,
@@ -254,7 +285,7 @@ function makeOptionForGetAllGists (token, userId, page) {
   }
 }
 
-function createSingleGist (token, description, files, isPublic) {
+function createSingleGist (token, description, files, isPublic, projectId) {
   logger.debug(TAG + 'Creating single gist')
 
   // 通过description，生成其md5值，当作title
@@ -262,7 +293,7 @@ function createSingleGist (token, description, files, isPublic) {
 
   const requests = []
   for (let filename in files) {
-    requests.push(createSingleSnippet(token, title, description, filename, files[filename].content, false))
+    requests.push(createSingleSnippet(token, title, description, filename, files[filename].content, false, projectId))
   }
   return Promise.all(requests)
     .then((res) => {
@@ -283,6 +314,7 @@ function createSingleGist (token, description, files, isPublic) {
           gist['created_at'] = snippet['created_at']
           gist['html_url'] = snippet['web_url']
           gist['user'] = snippet['author']['username']
+          gist['project_id'] = snippet['project_id']
         }
 
         gist.files[snippet['file_name']] = snippet
@@ -295,7 +327,7 @@ function createSingleGist (token, description, files, isPublic) {
     })
 }
 
-function createSingleSnippet (token, title, description, filename, filecontent, isPublic) {
+function createSingleSnippet (token, title, description, filename, filecontent, isPublic, projectId) {
   console.log('createSingleSnippet', title, description, filename, isPublic)
 
   logger.debug(TAG + 'Creating single snippet' + filename)
@@ -319,7 +351,7 @@ function createSingleSnippet (token, title, description, filename, filecontent, 
     json: true,
     timeout: 2 * kTimeoutUnit
   }).then((snippet) => {
-    return requestSnippetContent(snippet, token)
+    return requestSnippetContent(snippet, token, projectId)
   })
 }
 
@@ -335,14 +367,14 @@ function editSingleGist (token, gistId, updatedDescription, updatedFiles, gist) 
     if (file) {
       if (updatedFiles[filename] == null) {
         // 删除
-        requests.push(deleteSingleSnippet(token, gist.brief.files[filename].id))
+        requests.push(deleteSingleSnippet(token, gist.brief.files[filename].id, gist.brief.project_id))
       } else {
         // 更新
-        requests.push(updateSingleSnippet(token, file.id, file.title, updatedDescription, filename, updatedFiles[filename].content))
+        requests.push(updateSingleSnippet(token, file.id, file.title, updatedDescription, filename, updatedFiles[filename].content, gist.brief.project_id))
       }
     } else {
       // 创建
-      requests.push(createSingleSnippet(token, gist.brief.id, updatedDescription, filename, updatedFiles[filename].content, false))
+      requests.push(createSingleSnippet(token, gist.brief.id, updatedDescription, filename, updatedFiles[filename].content, false, gist.brief.project_id))
     }
   }
 
@@ -367,6 +399,7 @@ function editSingleGist (token, gistId, updatedDescription, updatedFiles, gist) 
           gist['created_at'] = snippet['created_at']
           gist['html_url'] = snippet['web_url']
           gist['user'] = snippet['author']['username']
+          gist['project_id'] = snippet['project_id']
         }
 
         gist.files[snippet['file_name']] = snippet
@@ -404,14 +437,14 @@ function judgeLanguage (filename) {
   }
 }
 
-function updateSingleSnippet (token, snippetId, title, description, filename, filecontent) {
+function updateSingleSnippet (token, snippetId, title, description, filename, filecontent, projectId) {
   console.log('updateSingleSnippet', title, description, filename)
   return ReqPromise({
     headers: {
       'User-Agent': userAgent,
     },
     method: 'PUT',
-    uri: `http://${hostApi}/projects/29334/snippets/${snippetId}`,
+    uri: `http://${hostApi}/projects/${projectId}/snippets/${snippetId}`,
     agent: proxyAgent,
     qs: {
       private_token: token
@@ -425,7 +458,7 @@ function updateSingleSnippet (token, snippetId, title, description, filename, fi
     json: true,
     timeout: 2 * kTimeoutUnit
   }).then((snippet) => {
-    return requestSnippetContent(snippet, token)
+    return requestSnippetContent(snippet, token, projectId)
   })
 }
 
@@ -434,12 +467,12 @@ function deleteSingleGist (token, gistId, gist) {
 
   const requests = []
   for (let filename in gist.brief.files) {
-    requests.push(deleteSingleSnippet(token, gist.brief.files[filename].id))
+    requests.push(deleteSingleSnippet(token, gist.brief.files[filename].id, gist.brief.project_id))
   }
   return Promise.all(requests)
 }
 
-function deleteSingleSnippet (token, snippetId) {
+function deleteSingleSnippet (token, snippetId, projectId) {
   console.log('deleteSingleSnippet', snippetId)
 
   return ReqPromise({
@@ -447,7 +480,7 @@ function deleteSingleSnippet (token, snippetId) {
       'User-Agent': userAgent,
     },
     method: 'DELETE',
-    uri: `http://${hostApi}/projects/29334/snippets/${snippetId}`,
+    uri: `http://${hostApi}/projects/${projectId}/snippets/${snippetId}`,
     agent: proxyAgent,
     qs: {
       private_token: token
@@ -457,4 +490,4 @@ function deleteSingleSnippet (token, snippetId) {
   })
 }
 
-export default { getAllGistsV2, getAllGistsV1, getSingleGist, getUserProfile, createSingleGist, editSingleGist, deleteSingleGist }
+export default { getAllGistsV2, getSingleGist, getUserProfile, createSingleGist, editSingleGist, deleteSingleGist }
