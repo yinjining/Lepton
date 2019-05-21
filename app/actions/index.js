@@ -1,6 +1,6 @@
 'use strict'
 
-import { getGitHubApi, GET_SINGLE_GIST } from '../utilities/githubApi'
+import { getGitHubApi, GET_SINGLE_GIST } from '../utilities/gitApi'
 import Notifier from '../utilities/notifier'
 import { remote } from 'electron'
 const logger = remote.getGlobal('logger')
@@ -225,8 +225,9 @@ export function updateLogoutModalStatus (status) {
 export function fetchSingleGist (oldGist, id) {
   return (dispatch, getState) => {
     let state = getState()
-    return getGitHubApi(GET_SINGLE_GIST)(state.accessToken, id)
+    return getGitHubApi(GET_SINGLE_GIST)(state.accessToken, id, oldGist)
       .then((details) => {
+        console.log('getgithubapi', details, oldGist)
         let newGist = Object.assign(oldGist, { details: details })
         let newGistWithId = {}
         newGistWithId[id] = newGist

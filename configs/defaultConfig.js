@@ -24,6 +24,10 @@ module.exports = {
         "host": "",
         "token": "",
         "avatarUrl": ""
- 
+    },
+    "gitlab": {
+        "enable": false,
+        "host": "",
+        "token": ""
     }
 }

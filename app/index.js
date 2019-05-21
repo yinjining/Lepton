@@ -25,7 +25,7 @@ import {
   getGitHubApi,
   GET_ALL_GISTS,
   GET_USER_PROFILE,
-  EXCHANGE_ACCESS_TOKEN } from './utilities/githubApi'
+  EXCHANGE_ACCESS_TOKEN } from './utilities/gitApi'
 
 import RootReducer from './reducers'
 import {
@@ -51,6 +51,7 @@ import {
 import Notifier from './utilities/notifier'
 
 const logger = remote.getGlobal('logger')
+const conf = remote.getGlobal('conf')
 
 let Account = null
 try {
@@ -397,7 +398,7 @@ function initUserSession (token) {
       syncLocalPref(newProfile.login)
       logger.debug('-----> after syncLocalPref')
 
-      remote.getCurrentWindow().setTitle(`${newProfile.login} | Lepton`) // update the app title
+      remote.getCurrentWindow().setTitle(`${newProfile.login} | ${conf.get('gitlab:enable') ? 'Gitlab' : 'GitHub'} Lepton`) // update the app title
 
       logger.info('[Dispatch] updateUserSession ACTIVE')
       reduxStore.dispatch(updateUserSession({ activeStatus: 'ACTIVE', profile: newProfile }))

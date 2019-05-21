@@ -64,7 +64,9 @@ class LoginPage extends Component {
     logger.debug('-----> Inside LoginPage handleContinueButtonClicked with loggedInUserInfo' + JSON.stringify(loggedInUserInfo))
 
     let token = null
-    if (conf.get('enterprise:enable')) {
+    if (conf.get('gitlab:enable')) {
+      token = conf.get('gitlab:token')
+    } else if (conf.get('enterprise:enable')) {
       token = conf.get('enterprise:token')
     } else if (loggedInUserInfo) {
       token = loggedInUserInfo.token
@@ -91,7 +93,13 @@ class LoginPage extends Component {
       )
     }
 
-    if (conf.get('enterprise:enable')) {
+    if (conf.get('gitlab:enable') || conf.get('enterprise:enable')) {
+      var footer = <a href="https://github.com/hackjutsu/Lepton">{welcomeMessage}</a>
+
+      if (conf.get('gitlab:enable')) {
+        footer = <a href="http://igit.58corp.com/">'Lepton is FREE. Like us in Gitlab!'</a>
+      }
+
       return (
         <div className='button-group-modal'>
           <Button
@@ -102,7 +110,7 @@ class LoginPage extends Component {
             { loggedInUserName ? `Continue as ${loggedInUserName}` : 'HAPPY CODING' }
           </Button>
           <div className="login-page-footer">
-            <a href="https://github.com/hackjutsu/Lepton">{ welcomeMessage }</a>
+            {footer}
           </div>
         </div>
       )

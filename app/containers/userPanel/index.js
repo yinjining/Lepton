@@ -26,7 +26,7 @@ import {
 import {
   CREATE_SINGLE_GIST,
   getGitHubApi,
-} from '../../utilities/githubApi'
+} from '../../utilities/gitApi'
 
 import './index.scss'
 
@@ -84,6 +84,7 @@ class UserPanel extends Component {
         logger.error(JSON.stringify(err))
       })
       .then((response) => {
+        console.log('create sing gist', response)
         this.updateGistsStoreWithNewGist(response)
       })
       .finally(() => {

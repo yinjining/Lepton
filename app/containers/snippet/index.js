@@ -29,7 +29,7 @@ import {
   DELETE_SINGLE_GIST,
   EDIT_SINGLE_GIST,
   getGitHubApi,
-} from '../../utilities/githubApi'
+} from '../../utilities/gitApi'
 
 import './index.scss'
 
@@ -70,10 +70,11 @@ class Snippet extends Component {
   }
 
   handleDeleteClicked () {
-    const { accessToken, activeGist } = this.props
+    const { accessToken, activeGist, gists } = this.props
     getGitHubApi(DELETE_SINGLE_GIST)(
       accessToken,
-      activeGist)
+      activeGist,
+      gists[activeGist])
       .catch(err => {
         logger.error('Failed to delete the gist ' + activeGist)
         logger.error(JSON.stringify(err))
@@ -153,7 +154,8 @@ class Snippet extends Component {
       accessToken,
       activeGist,
       description,
-      processedFiles)
+      processedFiles,
+      gists[activeGist])
       .catch((err) => {
         Notifier('Gist update failed')
         logger.error(JSON.stringify(err))

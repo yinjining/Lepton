@@ -2,7 +2,7 @@
 
 import { Promise } from 'bluebird'
 import { remote } from 'electron'
-import Notifier from '../notifier'
+import Notifier from '../../notifier'
 import ProxyAgent from 'proxy-agent'
 import ReqPromise from 'request-promise'
 import Request from 'request'
@@ -263,34 +263,4 @@ function deleteSingleGist (token, gistId) {
   })
 }
 
-export const EXCHANGE_ACCESS_TOKEN = 'EXCHANGE_ACCESS_TOKEN'
-export const GET_ALL_GISTS = 'GET_ALL_GISTS'
-export const GET_ALL_GISTS_V1 = 'GET_ALL_GISTS_V1'
-export const GET_SINGLE_GIST = 'GET_SINGLE_GIST'
-export const GET_USER_PROFILE = 'GET_USER_PROFILE'
-export const CREATE_SINGLE_GIST = 'CREATE_SINGLE_GIST'
-export const EDIT_SINGLE_GIST = 'EDIT_SINGLE_GIST'
-export const DELETE_SINGLE_GIST = 'DELETE_SINGLE_GIST'
-
-export function getGitHubApi (selection) {
-  switch (selection) {
-    case EXCHANGE_ACCESS_TOKEN:
-      return exchangeAccessToken
-    case GET_ALL_GISTS:
-      return getAllGistsV2
-    case GET_ALL_GISTS_V1:
-      return getAllGistsV1
-    case GET_SINGLE_GIST:
-      return getSingleGist
-    case GET_USER_PROFILE:
-      return getUserProfile
-    case CREATE_SINGLE_GIST:
-      return createSingleGist
-    case EDIT_SINGLE_GIST:
-      return editSingleGist
-    case DELETE_SINGLE_GIST:
-      return deleteSingleGist
-    default:
-      logger.debug(TAG + 'Not implemented yet.')
-  }
-}
+export default { exchangeAccessToken, getAllGistsV2, getAllGistsV1, getSingleGist, getUserProfile, createSingleGist, editSingleGist, deleteSingleGist }
