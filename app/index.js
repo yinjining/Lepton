@@ -398,7 +398,7 @@ function initUserSession (token) {
       syncLocalPref(newProfile.login)
       logger.debug('-----> after syncLocalPref')
 
-      remote.getCurrentWindow().setTitle(`${newProfile.login} | ${conf.get('gitlab:enable') ? 'Gitlab-WubaSnippets' : 'GitHub'} Lepton`) // update the app title
+      remote.getCurrentWindow().setTitle(`${newProfile.login} | ${conf.get('gitlab:enable') ? `Gitlab-${conf.get('gitlab:groupAndName')}` : 'GitHub'} Lepton`) // update the app title
 
       logger.info('[Dispatch] updateUserSession ACTIVE')
       reduxStore.dispatch(updateUserSession({ activeStatus: 'ACTIVE', profile: newProfile }))

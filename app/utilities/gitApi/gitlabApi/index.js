@@ -13,7 +13,7 @@ const kTimeoutUnit = 10 * 1000 // ms
 const logger = remote.getGlobal('logger')
 const conf = remote.getGlobal('conf')
 const userAgent = 'hackjutsu-lepton-app'
-let hostApi = 'igit.58corp.com'
+let hostApi = ''
 
 let proxyAgent = null
 if (conf) {
@@ -82,7 +82,6 @@ function getSingleGist (token, gistId, oldGist) {
 }
 
 function requestSnippetContent (snippet, token) {
-  // http://igit.58corp.com/api/v4/projects/29334/snippets/50/raw?private_token=xxxx
   logger.debug(TAG + `Requesting snippet content ${snippet.id} with token ${token}`)
   const SINGLE_GIST_URI = `http://${hostApi}/projects/29334/snippets/${snippet.id}/raw`
   return ReqPromise({
@@ -237,8 +236,6 @@ function makeRangeArr (start, end) {
 
 const GISTS_PER_PAGE = 100
 function makeOptionForGetAllGists (token, userId, page) {
-  // 29334是WubaSnippets项目的project_id
-  // http://igit.58corp.com/api/v4/projects/29334/snippets?private_token=xxxxx
   return {
     uri: `http://${hostApi}/projects/29334/snippets`,
     agent: proxyAgent,

@@ -34,7 +34,6 @@ import dojocatImage from '../../utilities/octodex/dojocat.jpg'
 import logoutIcon from './logout.svg'
 import newIcon from './new.svg'
 import privateinvestocatImage from '../../utilities/octodex/privateinvestocat.jpg'
-import wbicon from '../../utilities/octodex/wb_icon.png'
 import syncIcon from './sync.svg'
 
 const conf = remote.getGlobal('conf')
@@ -48,7 +47,9 @@ if (conf.get('enterprise:enable')) {
   }
 }
 if (conf.get('gitlab:enable')) {
-  defaultImage = wbicon
+  if (conf.get('gitlab:avatarUrl')) {
+    defaultImage = conf.get('gitlab:avatarUrl')
+  }
 }
 
 const kIsPrivate = conf.get('snippet:newSnippetPrivate')

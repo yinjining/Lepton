@@ -7,7 +7,6 @@ import React, { Component } from 'react'
 
 import dojocatImage from '../../utilities/octodex/dojocat.jpg'
 import privateinvestocatImage from '../../utilities/octodex/privateinvestocat.jpg'
-import wbicon from '../../utilities/octodex/wb_icon.png'
 
 import './index.scss'
 
@@ -22,7 +21,9 @@ if (conf.get('enterprise:enable')) {
   }
 }
 if (conf.get('gitlab:enable')) {
-  defaultImage = wbicon
+  if (conf.get('gitlab:avatarUrl')) {
+    defaultImage = conf.get('gitlab:avatarUrl')
+  }
 }
 
 class LoginPage extends Component {
@@ -101,7 +102,7 @@ class LoginPage extends Component {
       var footer = <a href="https://github.com/hackjutsu/Lepton">{welcomeMessage}</a>
 
       if (conf.get('gitlab:enable')) {
-        footer = <a href="http://igit.58corp.com/">'Lepton is FREE. Like us in Gitlab!'</a>
+        footer = <a href={`http://${conf.get('gitlab:host')`}/}>'Lepton is FREE. Like us in Gitlab!'</a>
       }
 
       return (

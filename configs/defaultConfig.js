@@ -28,6 +28,8 @@ module.exports = {
     "gitlab": {
         "enable": false,
         "host": "",
-        "token": ""
+        "token": "",
+        "avatarUrl": "",
+        "groupAndName": ""
     }
 }
