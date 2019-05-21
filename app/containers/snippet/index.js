@@ -451,7 +451,7 @@ class Snippet extends Component {
           </span>
           : null }
         <span className='update-date'>
-          { 'Last active ' + Moment(gist.brief.updated_at).fromNow() }
+          { 'Last active ' + Moment(gist.brief.updated_at).fromNow() + ' 创建：' + gist.brief.user}
         </span>
       </div>)
 

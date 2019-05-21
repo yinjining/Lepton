@@ -144,18 +144,35 @@ class NavigationPanel extends Component {
     const { userSession } = this.props
     const { activeSection } = this.state
 
-    let gitHubHost = 'github.com'
+    let starred = (
+      <div className='starred-tag-section'>
+        <div className='tag-section-content'>
+          <a className='gist-tag' href={ `https://gist.api.github.com/${userSession.profile.login}/starred` }>#starred</a>
+        </div>
+      </div>
+    )
     if (conf.get('enterprise:enable')) {
-      gitHubHost = conf.get('enterprise:host')
+      starred = (
+        <div className='starred-tag-section'>
+          <div className='tag-section-content'>
+            <a className='gist-tag' href={ `https://gist.${conf.get('enterprise:host')}/${userSession.profile.login}/starred` }>#starred</a>
+          </div>
+        </div>
+      )
+    }
+    if (conf.get('gitlab:enable')) {
+      starred = (
+        <div className='starred-tag-section'>
+          <div className='tag-section-content'>
+            <a className='gist-tag' href={ 'http://igit.58corp.com/com.wuba.wuxian.android/WubaSnippets/snippets' }>#Snippets</a>
+          </div>
+        </div>
+      )
     }
 
     return (
       <div className='gist-tag-section'>
-        <div className='starred-tag-section'>
-          <div className='tag-section-content'>
-            <a className='gist-tag' href={ `https://gist.${gitHubHost}/${userSession.profile.login}/starred` }>#starred</a>
-          </div>
-        </div>
+        {starred}
         <div className='tag-section-list'>
           <div
             className={

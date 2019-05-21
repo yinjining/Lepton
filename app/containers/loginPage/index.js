@@ -7,6 +7,7 @@ import React, { Component } from 'react'
 
 import dojocatImage from '../../utilities/octodex/dojocat.jpg'
 import privateinvestocatImage from '../../utilities/octodex/privateinvestocat.jpg'
+import wbicon from '../../utilities/octodex/wb_icon.png'
 
 import './index.scss'
 
@@ -19,6 +20,9 @@ if (conf.get('enterprise:enable')) {
   if (conf.get('enterprise:avatarUrl')) {
     defaultImage = conf.get('enterprise:avatarUrl')
   }
+}
+if (conf.get('gitlab:enable')) {
+  defaultImage = wbicon
 }
 
 class LoginPage extends Component {

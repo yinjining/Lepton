@@ -34,6 +34,7 @@ import dojocatImage from '../../utilities/octodex/dojocat.jpg'
 import logoutIcon from './logout.svg'
 import newIcon from './new.svg'
 import privateinvestocatImage from '../../utilities/octodex/privateinvestocat.jpg'
+import wbicon from '../../utilities/octodex/wb_icon.png'
 import syncIcon from './sync.svg'
 
 const conf = remote.getGlobal('conf')
@@ -45,6 +46,9 @@ if (conf.get('enterprise:enable')) {
   if (conf.get('enterprise:avatarUrl')) {
     defaultImage = conf.get('enterprise:avatarUrl')
   }
+}
+if (conf.get('gitlab:enable')) {
+  defaultImage = wbicon
 }
 
 const kIsPrivate = conf.get('snippet:newSnippetPrivate')
@@ -279,7 +283,7 @@ class UserPanel extends Component {
     }
 
     let avatarUrl = profile.avatar_url
-    if (conf.get('enterprise:enable')) {
+    if (conf.get('gitlab:enable') || conf.get('enterprise:enable')) {
       avatarUrl = defaultImage
     }
 

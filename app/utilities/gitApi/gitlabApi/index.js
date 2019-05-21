@@ -29,21 +29,21 @@ if (conf) {
   }
 }
 
-function exchangeAccessToken (clientId, clientSecret, authCode) {
-  logger.debug(TAG + 'Exchanging authCode with access token')
-  return ReqPromise({
-    method: 'POST',
-    uri: 'https://github.com/login/oauth/access_token',
-    agent: proxyAgent,
-    form: {
-      'client_id': clientId,
-      'client_secret': clientSecret,
-      'code': authCode,
-    },
-    json: true,
-    timeout: 2 * kTimeoutUnit
-  })
-}
+// function exchangeAccessToken (clientId, clientSecret, authCode) {
+//   logger.debug(TAG + 'Exchanging authCode with access token')
+//   return ReqPromise({
+//     method: 'POST',
+//     uri: 'https://github.com/login/oauth/access_token',
+//     agent: proxyAgent,
+//     form: {
+//       'client_id': clientId,
+//       'client_secret': clientSecret,
+//       'code': authCode,
+//     },
+//     json: true,
+//     timeout: 2 * kTimeoutUnit
+//   })
+// }
 
 function getUserProfile (token) {
   logger.debug(TAG + 'Getting user profile with token ' + token)
@@ -143,13 +143,15 @@ function getAllGistsV2 (token, userId) {
 
         gist.files = gist.files || {}
         gist.files[snippet['file_name']] = snippet
-        snippet['language'] = 'java'
+        snippet['language'] = judgeLanguage(snippet['file_name'])
         snippet['filename'] = snippet['file_name']
 
         gist.description = snippet['description']
         gist.id = snippet['title']
         gist['updated_at'] = snippet['updated_at']
         gist['created_at'] = snippet['created_at']
+        gist['html_url'] = snippet['web_url']
+        gist['user'] = snippet['author']['username']
       }
 
       console.log('gistList=', gistList)
@@ -263,7 +265,7 @@ function createSingleGist (token, description, files, isPublic) {
 
   const requests = []
   for (let filename in files) {
-    requests.push(createSingleSnippet(token, title, description, filename, files[filename].content, isPublic))
+    requests.push(createSingleSnippet(token, title, description, filename, files[filename].content, false))
   }
   return Promise.all(requests)
     .then((res) => {
@@ -271,16 +273,23 @@ function createSingleGist (token, description, files, isPublic) {
       // 转换所有的结果
       const gist = {}
 
-      gist.description = res[0]['description']
-      gist.id = res[0]['title']
-      gist['updated_at'] = res[0]['updated_at']
-      gist['created_at'] = res[0]['created_at']
-
+      let isInit = false
       gist.files = {}
       for (let i = 0; i < res.length; i++) {
         let snippet = res[i]
+
+        if (!isInit) {
+          isInit = true
+          gist.description = snippet['description']
+          gist.id = snippet['title']
+          gist['updated_at'] = snippet['updated_at']
+          gist['created_at'] = snippet['created_at']
+          gist['html_url'] = snippet['web_url']
+          gist['user'] = snippet['author']['username']
+        }
+
         gist.files[snippet['file_name']] = snippet
-        snippet['language'] = 'java'
+        snippet['language'] = judgeLanguage(snippet['file_name'])
         snippet['filename'] = snippet['file_name']
       }
 
@@ -359,16 +368,43 @@ function editSingleGist (token, gistId, updatedDescription, updatedFiles, gist) 
           gist.id = snippet['title']
           gist['updated_at'] = snippet['updated_at']
           gist['created_at'] = snippet['created_at']
+          gist['html_url'] = snippet['web_url']
+          gist['user'] = snippet['author']['username']
         }
 
         gist.files[snippet['file_name']] = snippet
-        snippet['language'] = 'java'
+        snippet['language'] = judgeLanguage(snippet['file_name'])
         snippet['filename'] = snippet['file_name']
       }
 
       console.log('editSingleGist', gist)
       return gist
     })
+}
+
+function judgeLanguage (filename) {
+  // 获取最后一个.的位置
+  let index = filename.lastIndexOf('.')
+  // 获取后缀
+  let ext = filename.substr(index + 1)
+  switch (ext) {
+    case 'java':
+      return 'java'
+    case 'kt':
+      return 'kotlin'
+    case 'json':
+      return 'json'
+    case 'js':
+      return 'javascript'
+    case 'html':
+      return 'html'
+    case 'xml':
+      return 'xml'
+    case 'css':
+      return 'css'
+    default:
+      return 'java'
+  }
 }
 
 function updateSingleSnippet (token, snippetId, title, description, filename, filecontent) {
@@ -424,4 +460,4 @@ function deleteSingleSnippet (token, snippetId) {
   })
 }
 
-export default { exchangeAccessToken, getAllGistsV2, getAllGistsV1, getSingleGist, getUserProfile, createSingleGist, editSingleGist, deleteSingleGist }
+export default { getAllGistsV2, getAllGistsV1, getSingleGist, getUserProfile, createSingleGist, editSingleGist, deleteSingleGist }
