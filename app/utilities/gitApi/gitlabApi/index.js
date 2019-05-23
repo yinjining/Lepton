@@ -336,7 +336,7 @@ function createSingleSnippet (token, title, description, filename, filecontent, 
       'User-Agent': userAgent,
     },
     method: 'POST',
-    uri: `http://${hostApi}/projects/29334/snippets`,
+    uri: `http://${hostApi}/projects/${projectId}/snippets`,
     agent: proxyAgent,
     qs: {
       private_token: token
