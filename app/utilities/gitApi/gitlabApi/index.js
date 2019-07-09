@@ -432,6 +432,18 @@ function judgeLanguage (filename) {
       return 'xml'
     case 'css':
       return 'css'
+    case 'm':
+      return 'Object-C'
+    case 'c':
+      return 'c'
+    case 'mm':
+      return 'c++'
+    case 'swift':
+      return 'swift'	
+    case 'h-m':
+      return 'Object-C'
+    case 'h-c':
+       return 'c'
     default:
       return 'java'
   }
