@@ -433,17 +433,17 @@ function judgeLanguage (filename) {
     case 'css':
       return 'css'
     case 'm':
-      return 'Object-C'
+      return 'Objective-C'
+	case 'h-m':
+	  return 'Objective-C'
     case 'c':
       return 'c'
+	case 'h-c':
+	  return 'c'
     case 'mm':
       return 'c++'
     case 'swift':
       return 'swift'	
-    case 'h-m':
-      return 'Object-C'
-    case 'h-c':
-       return 'c'
     default:
       return 'java'
   }
